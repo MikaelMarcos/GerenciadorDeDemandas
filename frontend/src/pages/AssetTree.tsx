@@ -296,13 +296,13 @@ export default function AssetTree() {
           <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
             <span className="font-bold text-slate-700">Tabela de Controle Operacional</span>
             <div className="flex items-center gap-2">
-               <span className="text-sm font-medium text-slate-600">Filtrar Localidade:</span>
+               <span className="text-sm font-medium text-slate-600">Filtrar por Sistema:</span>
                <select 
                  value={cityFilter}
                  onChange={e => setCityFilter(e.target.value)}
                  className="bg-white border text-sm border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
                >
-                 <option value="all">Todas as Lotações</option>
+                 <option value="all">Todos os Sistemas</option>
                  {citiesList.map(c => <option key={c} value={c}>{c}</option>)}
                </select>
             </div>
@@ -318,7 +318,7 @@ export default function AssetTree() {
                     <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                     <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tag</th>
                     <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Categoria</th>
-                    <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Sistema (Cidade)</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Subsistema (Sistema)</th>
                     <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Última Manut.</th>
                   </tr>
                 </thead>

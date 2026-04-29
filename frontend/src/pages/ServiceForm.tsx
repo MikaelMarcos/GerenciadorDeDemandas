@@ -29,6 +29,17 @@ export default function ServiceForm() {
 
   // ML Custom Questions
   const [extraQuestions, setExtraQuestions] = useState<{question: string, answer: string}[]>([]);
+  const [savedQuestions, setSavedQuestions] = useState<string[]>([]);
+
+  // Telemetry specific
+  const [telemetrySignal, setTelemetrySignal] = useState('');
+  const [telemetryAntenna, setTelemetryAntenna] = useState('');
+  const [telemetryPower, setTelemetryPower] = useState('');
+
+  // Inverter specific
+  const [inverterVoltage, setInverterVoltage] = useState('');
+  const [inverterCurrent, setInverterCurrent] = useState('');
+  const [inverterPanel, setInverterPanel] = useState('');
 
   const [form, setForm] = useState({
     asset_id: initialAssetId,
@@ -53,6 +64,16 @@ export default function ServiceForm() {
       setAssets(assetsRes.data);
       setUsers(usersRes.data);
     }).catch(console.error);
+
+    // Carregar perguntas salvas anteriormente para auto-completar
+    try {
+      const saved = localStorage.getItem('nuiam_custom_questions');
+      if (saved) {
+        setSavedQuestions(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
   // Monitorar mudança do asset para carregar histórico e prever peças
@@ -89,11 +110,37 @@ export default function ServiceForm() {
     const finalNaturalInfluence = naturalInfluenceSelect === 'Outro' ? naturalInfluenceCustom : naturalInfluenceSelect;
     const finalPipingMaterial = pipingMaterialSelect === 'Outro' ? pipingMaterialCustom : pipingMaterialSelect;
 
+    // Inject Category Specifics
+    let categoryNotes = '';
+    if (form.category === 'Telemetria') {
+      const parts = [];
+      if (telemetrySignal) parts.push(`Sinal: ${telemetrySignal}`);
+      if (telemetryAntenna) parts.push(`Antena: ${telemetryAntenna}`);
+      if (telemetryPower) parts.push(`Fonte: ${telemetryPower}`);
+      if (parts.length > 0) categoryNotes = `[Telemetria] ${parts.join(' | ')}\n\n`;
+    } else if (form.category === 'Inversor') {
+      const parts = [];
+      if (inverterVoltage) parts.push(`Tensão(V): ${inverterVoltage}`);
+      if (inverterCurrent) parts.push(`Corrente(A): ${inverterCurrent}`);
+      if (inverterPanel) parts.push(`Painel: ${inverterPanel}`);
+      if (parts.length > 0) categoryNotes = `[Inversor] ${parts.join(' | ')}\n\n`;
+    }
+
+    finalNotes = categoryNotes + finalNotes;
+
     // Formatar perguntas extras
-    let finalNotes = form.materials_used;
     if (extraQuestions.length > 0) {
-      const qs = extraQuestions.map(q => `${q.question}: ${q.answer}`).join(' | ');
-      finalNotes = `[Checklist Customizado] ${qs}\n\n${finalNotes}`;
+      const validQs = extraQuestions.filter(q => q.question.trim() !== '');
+      if (validQs.length > 0) {
+        const qsString = validQs.map(q => `${q.question}: ${q.answer}`).join(' | ');
+        finalNotes = `[Checklist Customizado] ${qsString}\n\n${finalNotes}`;
+        
+        // Save new questions to localStorage
+        const newSavedQs = new Set([...savedQuestions, ...validQs.map(q => q.question.trim())]);
+        const newSavedArr = Array.from(newSavedQs);
+        setSavedQuestions(newSavedArr);
+        localStorage.setItem('nuiam_custom_questions', JSON.stringify(newSavedArr));
+      }
     }
 
     setLoading(true);
@@ -120,6 +167,12 @@ export default function ServiceForm() {
       setReplacedPartsBool('false');
       setReplacedPartsText('');
       setExtraQuestions([]);
+      setTelemetrySignal('');
+      setTelemetryAntenna('');
+      setTelemetryPower('');
+      setInverterVoltage('');
+      setInverterCurrent('');
+      setInverterPanel('');
       setSelectedUserIds([]);
       addToast('Serviço registrado com sucesso! O checklist foi salvo no histórico do ativo.', 'success');
       navigate('/assets');
@@ -291,75 +344,138 @@ export default function ServiceForm() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold border-b pb-2">Checklist Técnico</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Sistema Aberto ou Fechado?</label>
-              <select 
-                value={form.is_closed_system} 
-                onChange={e => setForm({...form, is_closed_system: e.target.value})}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
-              >
-                <option value="true">Fechado</option>
-                <option value="false">Aberto</option>
-              </select>
-            </div>
+          {/* Campos Específicos por Categoria */}
+          {form.category === 'Macromedição' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
+               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Sistema Aberto ou Fechado?</label>
+                <select 
+                  value={form.is_closed_system} 
+                  onChange={e => setForm({...form, is_closed_system: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                >
+                  <option value="true">Fechado</option>
+                  <option value="false">Aberto</option>
+                </select>
+              </div>
 
-            {/* Material de Tubulação com customização */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Material da Tubulação</label>
-              <select 
-                value={pipingMaterialSelect} 
-                onChange={e => setPipingMaterialSelect(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none mb-2"
-              >
-                <option value="PVC">PVC</option>
-                <option value="Ferro Fundido">Ferro Fundido</option>
-                <option value="Aço Carbono">Aço Carbono</option>
-                <option value="PAD">PAD</option>
-                <option value="Outro">Adicionar nova opção...</option>
-              </select>
-              {pipingMaterialSelect === 'Outro' && (
-                <input 
-                  type="text"
-                  value={pipingMaterialCustom}
-                  onChange={e => setPipingMaterialCustom(e.target.value)}
-                  className="w-full px-4 py-2 bg-white border border-primary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                  placeholder="Digite o novo material..."
-                  required
-                />
-              )}
-            </div>
+              {/* Material de Tubulação com customização */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Material da Tubulação</label>
+                <select 
+                  value={pipingMaterialSelect} 
+                  onChange={e => setPipingMaterialSelect(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none mb-2"
+                >
+                  <option value="PVC">PVC</option>
+                  <option value="Ferro Fundido">Ferro Fundido</option>
+                  <option value="Aço Carbono">Aço Carbono</option>
+                  <option value="PAD">PAD</option>
+                  <option value="Outro">Adicionar nova opção...</option>
+                </select>
+                {pipingMaterialSelect === 'Outro' && (
+                  <input 
+                    type="text"
+                    value={pipingMaterialCustom}
+                    onChange={e => setPipingMaterialCustom(e.target.value)}
+                    className="w-full px-4 py-2 bg-white border border-primary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                    placeholder="Digite o novo material..."
+                    required
+                  />
+                )}
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Diâmetro (mm) - Opcional</label>
-              <select 
-                value={form.diameter_mm} 
-                onChange={e => setForm({...form, diameter_mm: e.target.value})}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
-              >
-                <option value="">Não se aplica / Não medido</option>
-                <option value="50">50 mm</option>
-                <option value="75">75 mm</option>
-                <option value="100">100 mm</option>
-                <option value="150">150 mm</option>
-                <option value="200">200 mm</option>
-                <option value="250">250 mm</option>
-                <option value="300">300 mm</option>
-              </select>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Diâmetro (mm) - Opcional</label>
+                <select 
+                  value={form.diameter_mm} 
+                  onChange={e => setForm({...form, diameter_mm: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                >
+                  <option value="">Não se aplica / Não medido</option>
+                  <option value="50">50 mm</option>
+                  <option value="75">75 mm</option>
+                  <option value="100">100 mm</option>
+                  <option value="150">150 mm</option>
+                  <option value="200">200 mm</option>
+                  <option value="250">250 mm</option>
+                  <option value="300">300 mm</option>
+                </select>
+              </div>
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Interferências Elétricas?</label>
+          {form.category === 'Telemetria' && (
+            <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 animate-in fade-in">
+              <div>
+                <label className="block text-sm font-medium text-blue-900 mb-1">Qualidade do Sinal</label>
+                <select value={telemetrySignal} onChange={e => setTelemetrySignal(e.target.value)} className="w-full px-4 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <option value="">Selecione...</option>
+                  <option value="Bom">Bom</option>
+                  <option value="Fraco">Fraco</option>
+                  <option value="Sem Sinal">Sem Sinal</option>
+                  <option value="Oscilando">Oscilando</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-900 mb-1">Condição da Antena</label>
+                <select value={telemetryAntenna} onChange={e => setTelemetryAntenna(e.target.value)} className="w-full px-4 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <option value="">Selecione...</option>
+                  <option value="OK">OK</option>
+                  <option value="Danificada">Danificada</option>
+                  <option value="Obstruída">Obstruída</option>
+                  <option value="Desalinhada">Desalinhada</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-900 mb-1">Fonte de Alimentação</label>
+                <select value={telemetryPower} onChange={e => setTelemetryPower(e.target.value)} className="w-full px-4 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <option value="">Selecione...</option>
+                  <option value="Rede Elétrica">Rede Elétrica</option>
+                  <option value="Energia Solar">Energia Solar</option>
+                  <option value="Bateria">Bateria Exclusiva</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {form.category === 'Inversor' && (
+            <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-100 grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 animate-in fade-in">
+              <div>
+                <label className="block text-sm font-medium text-amber-900 mb-1">Tensão Operacional (V)</label>
+                <input type="number" step="0.1" value={inverterVoltage} onChange={e => setInverterVoltage(e.target.value)} className="w-full px-4 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ex: 380" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-amber-900 mb-1">Corrente Operacional (A)</label>
+                <input type="number" step="0.1" value={inverterCurrent} onChange={e => setInverterCurrent(e.target.value)} className="w-full px-4 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="Ex: 45.2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-amber-900 mb-1">Condição do Painel</label>
+                <select value={inverterPanel} onChange={e => setInverterPanel(e.target.value)} className="w-full px-4 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                  <option value="">Selecione...</option>
+                  <option value="OK">OK</option>
+                  <option value="Superaquecimento">Superaquecimento</option>
+                  <option value="Sujeira/Poeira">Excesso de Sujeira/Poeira</option>
+                  <option value="Infiltração">Infiltração de Água</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Campos Globais (para todas as categorias exceto Outros) */}
+          {form.category !== 'Outros' && (
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4 animate-in fade-in">
+              <label className="block text-sm font-semibold text-slate-800 mb-2">Interferências Elétricas (Falta de Fase, Surtos, etc)?</label>
               <select 
                 value={form.electrical_interferences} 
                 onChange={e => setForm({...form, electrical_interferences: e.target.value})}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
               >
                 <option value="false">Não</option>
-                <option value="true">Sim (Aviso de anomalia)</option>
+                <option value="true">Sim (Aviso de anomalia reportado)</option>
               </select>
             </div>
-          </div>
+          )}
 
           {/* Influências Naturais com customização */}
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
@@ -425,14 +541,29 @@ export default function ServiceForm() {
                  + Adicionar Pergunta
                </button>
              </div>
-             
+             {savedQuestions.length > 0 && (
+               <datalist id="saved-questions">
+                 {savedQuestions.map((sq, idx) => (
+                   <option key={idx} value={sq} />
+                 ))}
+               </datalist>
+             )}
+
              {extraQuestions.map((eq, idx) => (
                 <div key={idx} className="flex gap-2 mb-2 animate-in fade-in slide-in-from-top-1">
-                   <input type="text" placeholder="Pergunta (Ex: Qual pressão local?)" value={eq.question} onChange={e => {
-                       const newQs = [...extraQuestions];
-                       newQs[idx].question = e.target.value;
-                       setExtraQuestions(newQs);
-                   }} className="w-1/2 px-3 py-2 bg-white border border-slate-300 rounded focus:ring-2 focus:ring-primary-500 text-sm outline-none" required />
+                   <input 
+                       list="saved-questions"
+                       type="text" 
+                       placeholder="Pergunta (Ex: Qual pressão local?)" 
+                       value={eq.question} 
+                       onChange={e => {
+                           const newQs = [...extraQuestions];
+                           newQs[idx].question = e.target.value;
+                           setExtraQuestions(newQs);
+                       }} 
+                       className="w-1/2 px-3 py-2 bg-white border border-slate-300 rounded focus:ring-2 focus:ring-primary-500 text-sm outline-none" 
+                       required 
+                   />
                    
                    <input type="text" placeholder="Resposta" value={eq.answer} onChange={e => {
                        const newQs = [...extraQuestions];

@@ -421,8 +421,8 @@ def generate_report(start_date: date = None, end_date: date = None, db: Session 
     for svc, asset, sys, city in results:
         report_data.append({
             "Data da Manutencao": svc.date.strftime('%Y-%m-%d'),
-            "Cidade/Regional": city.name,
-            "Sistema": sys.name,
+            "Sistema Geral": city.name,
+            "Subsistema / Localidade": sys.name,
             "Tag do Ativo": asset.tag,
             "Categoria Ativo": asset.category,
             "Tipo Manutencao": svc.macro_type,

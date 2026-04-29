@@ -190,13 +190,13 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-800">Visão Geral NUIAM</h1>
         <div className="flex items-center gap-2">
-           <span className="text-sm font-medium text-slate-600">Filtrar Localidade:</span>
+           <span className="text-sm font-medium text-slate-600">Filtrar por Sistema:</span>
            <select 
              value={cityFilter}
              onChange={e => setCityFilter(e.target.value)}
              className="bg-white border text-sm border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
            >
-             <option value="all">Todas as Lotações</option>
+             <option value="all">Todos os Sistemas</option>
              {citiesList.map(c => <option key={c} value={c}>{c}</option>)}
            </select>
         </div>
