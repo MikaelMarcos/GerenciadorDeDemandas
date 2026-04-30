@@ -7,7 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 
 export default function ServiceForm() {
   const [searchParams] = useSearchParams();
-  const editId = searchParams.get('edit_id');
+  const editId = searchParams.get('edit') || searchParams.get('edit_id');
   const initialAssetId = searchParams.get('asset') || '';
   const navigate = useNavigate();
   const { addToast } = useToast();

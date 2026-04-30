@@ -130,6 +130,19 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteService = async (serviceId: number) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta vistoria? Esta ação não pode ser desfeita.')) return;
+    try {
+      await api.delete(`/services/${serviceId}`);
+      if (selectedAssetId) api.get(`/assets/${selectedAssetId}`).then(res => setAssetHistory(res.data));
+      fetchDashboard();
+      addToast('Vistoria excluída com sucesso', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Erro ao excluir a vistoria', 'error');
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center h-full text-slate-500">Carregando painel...</div>;
 
   const handleDragStart = (e: React.DragEvent, id: number) => {
@@ -442,11 +455,18 @@ export default function Dashboard() {
                                     {svc.date ? svc.date.split('T')[0].split('-').reverse().join('/') : ''}
                                   </span>
                                   <button 
-                                    onClick={() => { setEditingDateId(svc.id); setNewSvcDate(svc.date); }}
+                                    onClick={() => navigate(`/service?edit=${svc.id}&asset=${assetHistory.id}`)}
                                     className="p-1 text-slate-400 hover:text-primary-600 hover:bg-slate-50 rounded transition-colors"
-                                    title="Editar Data"
+                                    title="Editar Vistoria Completa"
                                   >
                                     <Edit2 size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteService(svc.id)}
+                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-slate-50 rounded transition-colors"
+                                    title="Excluir Vistoria"
+                                  >
+                                    <X size={14} />
                                   </button>
                                 </>
                               )}

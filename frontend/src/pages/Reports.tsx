@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileDown, Calendar, DownloadCloud, AlertCircle, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import api from '../api';
 
 export default function Reports() {
@@ -137,7 +137,7 @@ export default function Reports() {
       });
 
       // @ts-ignore
-      doc.autoTable({
+      autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 45,

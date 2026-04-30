@@ -279,6 +279,8 @@ def delete_service(service_id: int, db: Session = Depends(database.get_db)):
     if not db_service:
         raise HTTPException(status_code=404, detail="Serviço não encontrado")
     
+    db_service.users.clear()
+    
     asset_id = db_service.asset_id
     db.delete(db_service)
     db.commit()
