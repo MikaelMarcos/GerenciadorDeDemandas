@@ -434,6 +434,7 @@ export default function ServiceForm() {
                   <option value="Rede Elétrica">Rede Elétrica</option>
                   <option value="Energia Solar">Energia Solar</option>
                   <option value="Bateria">Bateria Exclusiva</option>
+                  <option value="Usava fonte 12v/24v">Usava fonte 12v/24v</option>
                 </select>
               </div>
             </div>
