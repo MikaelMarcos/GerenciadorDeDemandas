@@ -126,7 +126,7 @@ export default function ServiceForm() {
       if (parts.length > 0) categoryNotes = `[Inversor] ${parts.join(' | ')}\n\n`;
     }
 
-    finalNotes = categoryNotes + finalNotes;
+    let finalNotes = categoryNotes + form.materials_used;
 
     // Formatar perguntas extras
     if (extraQuestions.length > 0) {
