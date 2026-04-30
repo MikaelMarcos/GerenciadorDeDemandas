@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 
 export default function ServiceForm() {
   const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit_id');
   const initialAssetId = searchParams.get('asset') || '';
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -76,18 +77,63 @@ export default function ServiceForm() {
     }
   }, []);
 
+  // Fetch service to edit if edit_id is present
+  useEffect(() => {
+    if (editId) {
+      api.get(`/services/${editId}`).then(res => {
+        const data = res.data;
+        setForm({
+          asset_id: String(data.asset_id),
+          date: data.date ? data.date.split('T')[0] : '',
+          macro_type: data.macro_type || 'Preventiva',
+          category: data.category || 'Macromedição',
+          is_closed_system: data.is_closed_system === true ? 'true' : 'false',
+          diameter_mm: data.diameter_mm ? String(data.diameter_mm) : '',
+          electrical_interferences: data.electrical_interferences === true ? 'true' : 'false',
+          materials_used: data.materials_used || '',
+        });
+        
+        if (data.piping_material) {
+          if (['PVC', 'Ferro Fundido', 'PBA', 'Aço', 'PEAD'].includes(data.piping_material)) {
+            setPipingMaterialSelect(data.piping_material);
+          } else {
+            setPipingMaterialSelect('Outro');
+            setPipingMaterialCustom(data.piping_material);
+          }
+        }
+        
+        if (data.natural_influences) {
+          if (['Nenhuma / Local limpo', 'Raízes de Árvores', 'Deslizamento/Erosão', 'Vandalismo'].includes(data.natural_influences)) {
+            setNaturalInfluenceSelect(data.natural_influences);
+          } else {
+            setNaturalInfluenceSelect('Outro');
+            setNaturalInfluenceCustom(data.natural_influences);
+          }
+        }
+
+        if (data.replaced_parts) {
+          setReplacedPartsBool('true');
+          setReplacedPartsText(data.replaced_parts);
+        }
+
+        if (data.users && data.users.length > 0) {
+          setSelectedUserIds(data.users.map((u: any) => u.id));
+        }
+
+      }).catch(console.error);
+    }
+  }, [editId]);
+
   // Monitorar mudança do asset para carregar histórico e prever peças
   useEffect(() => {
-    if (form.asset_id) {
+    if (form.asset_id && !editId) {
       api.get(`/assets/${form.asset_id}`)
         .then(res => {
            const history = res.data.services || [];
-           // Extrair e deduzir peças trocadas anteriormente
            const parts = history
              .map((s: any) => s.replaced_parts)
              .filter(Boolean);
            
-           // Pega os itens unicos quebados por vírgula e junta
            const uniquePartsSet = new Set<string>();
            parts.forEach((p: string) => {
              p.split(',').map(item => item.trim()).filter(Boolean).forEach(i => uniquePartsSet.add(i));
@@ -100,7 +146,7 @@ export default function ServiceForm() {
        setHistoricalSuggestions([]);
        setPastServices([]);
     }
-  }, [form.asset_id]);
+  }, [form.asset_id, editId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,7 +191,7 @@ export default function ServiceForm() {
 
     setLoading(true);
     try {
-      await api.post('/services', {
+      const payload = {
         asset_id: parseInt(form.asset_id),
         date: form.date,
         macro_type: form.macro_type,
@@ -158,24 +204,32 @@ export default function ServiceForm() {
         materials_used: finalNotes,
         replaced_parts: replacedPartsBool === 'true' ? replacedPartsText : null,
         user_ids: selectedUserIds
-      });
-      setForm(prev => ({ ...prev, materials_used: '', diameter_mm: '', date: new Date().toISOString().split('T')[0] }));
-      setNaturalInfluenceSelect('');
-      setNaturalInfluenceCustom('');
-      setPipingMaterialSelect('PVC');
-      setPipingMaterialCustom('');
-      setReplacedPartsBool('false');
-      setReplacedPartsText('');
-      setExtraQuestions([]);
-      setTelemetrySignal('');
-      setTelemetryAntenna('');
-      setTelemetryPower('');
-      setInverterVoltage('');
-      setInverterCurrent('');
-      setInverterPanel('');
-      setSelectedUserIds([]);
-      addToast('Serviço registrado com sucesso! O checklist foi salvo no histórico do ativo.', 'success');
-      navigate('/assets');
+      };
+
+      if (editId) {
+        await api.put(`/services/${editId}`, payload);
+        addToast('Vistoria atualizada com sucesso!', 'success');
+        navigate('/assets');
+      } else {
+        await api.post('/services', payload);
+        setForm(prev => ({ ...prev, materials_used: '', diameter_mm: '', date: new Date().toISOString().split('T')[0] }));
+        setNaturalInfluenceSelect('');
+        setNaturalInfluenceCustom('');
+        setPipingMaterialSelect('PVC');
+        setPipingMaterialCustom('');
+        setReplacedPartsBool('false');
+        setReplacedPartsText('');
+        setExtraQuestions([]);
+        setTelemetrySignal('');
+        setTelemetryAntenna('');
+        setTelemetryPower('');
+        setInverterVoltage('');
+        setInverterCurrent('');
+        setInverterPanel('');
+        setSelectedUserIds([]);
+        addToast('Serviço registrado com sucesso! O checklist foi salvo no histórico do ativo.', 'success');
+        navigate('/assets');
+      }
     } catch (err) {
       console.error(err);
       addToast('Ocorreu um erro ao salvar o serviço. Tente novamente.', 'error');
@@ -186,7 +240,9 @@ export default function ServiceForm() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20">
-      <h1 className="text-2xl font-bold text-slate-800">Registrar Intervenção Técnica</h1>
+      <h1 className="text-2xl font-bold text-slate-800">
+        {editId ? 'Editar Intervenção Técnica' : 'Registrar Intervenção Técnica'}
+      </h1>
       
       {success && (
         <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 font-medium">
@@ -604,7 +660,7 @@ export default function ServiceForm() {
           disabled={loading}
           className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
         >
-          {loading ? 'Registrando...' : 'Registrar Serviço e Atualizar Status'}
+          {loading ? 'Salvando...' : (editId ? 'Salvar Alterações da Vistoria' : 'Registrar Serviço e Atualizar Status')}
         </button>
       </form>
     </div>

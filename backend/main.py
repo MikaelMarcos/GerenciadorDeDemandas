@@ -237,6 +237,64 @@ def create_service(service: schemas.ServiceCreate, background_tasks: BackgroundT
     db.refresh(db_service)
     return db_service
 
+@app.get("/api/services/{service_id}", response_model=schemas.Service)
+def get_service(service_id: int, db: Session = Depends(database.get_db)):
+    db_service = db.query(models.Service).filter(models.Service.id == service_id).first()
+    if not db_service:
+        raise HTTPException(status_code=404, detail="Serviço não encontrado")
+    return db_service
+
+@app.put("/api/services/{service_id}", response_model=schemas.Service)
+def update_service(service_id: int, service_update: schemas.ServiceUpdate, db: Session = Depends(database.get_db)):
+    db_service = db.query(models.Service).filter(models.Service.id == service_id).first()
+    if not db_service:
+        raise HTTPException(status_code=404, detail="Serviço não encontrado")
+    
+    update_data = service_update.model_dump(exclude_unset=True)
+    user_ids = update_data.pop("user_ids", None)
+    
+    for key, value in update_data.items():
+        setattr(db_service, key, value)
+        
+    if user_ids is not None:
+        users = db.query(models.User).filter(models.User.id.in_(user_ids)).all()
+        db_service.users = users
+        
+    db.commit()
+    db.refresh(db_service)
+    
+    # Atualiza o last_maintenance do asset se a data for atualizada
+    asset = db.query(models.Asset).filter(models.Asset.id == db_service.asset_id).first()
+    if asset:
+        latest_service = db.query(models.Service).filter(models.Service.asset_id == asset.id).order_by(models.Service.date.desc()).first()
+        if latest_service:
+             asset.last_maintenance = latest_service.date
+        db.commit()
+
+    return db_service
+
+@app.delete("/api/services/{service_id}")
+def delete_service(service_id: int, db: Session = Depends(database.get_db)):
+    db_service = db.query(models.Service).filter(models.Service.id == service_id).first()
+    if not db_service:
+        raise HTTPException(status_code=404, detail="Serviço não encontrado")
+    
+    asset_id = db_service.asset_id
+    db.delete(db_service)
+    db.commit()
+    
+    # Atualiza o last_maintenance do asset
+    asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
+    if asset:
+        latest_service = db.query(models.Service).filter(models.Service.asset_id == asset.id).order_by(models.Service.date.desc()).first()
+        if latest_service:
+             asset.last_maintenance = latest_service.date
+        else:
+             asset.last_maintenance = None
+        db.commit()
+        
+    return {"message": "Serviço deletado com sucesso"}
+
 @app.put("/api/services/{service_id}/date")
 def update_service_date(service_id: int, service_update: schemas.ServiceUpdateDate, db: Session = Depends(database.get_db)):
     db_service = db.query(models.Service).filter(models.Service.id == service_id).first()

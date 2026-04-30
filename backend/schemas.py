@@ -45,6 +45,19 @@ class ServiceCreate(ServiceBase):
     user_ids: List[int] = []
     date: Optional[dt_date] = None
 
+class ServiceUpdate(BaseModel):
+    macro_type: Optional[str] = None
+    category: Optional[str] = None
+    is_closed_system: Optional[bool] = None
+    piping_material: Optional[str] = None
+    diameter_mm: Optional[float] = None
+    natural_influences: Optional[str] = None
+    electrical_interferences: Optional[bool] = None
+    materials_used: Optional[str] = None
+    replaced_parts: Optional[str] = None
+    date: Optional[dt_date] = None
+    user_ids: Optional[List[int]] = None
+
 class ServiceUpdateDate(BaseModel):
     date: dt_date
 

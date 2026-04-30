@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { ChevronRight, ChevronDown, MapPin, Settings2, Hash, X, FileText, Check, AlertTriangle, Edit2, Plus, Star, PlusCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, MapPin, Settings2, Hash, X, FileText, Check, AlertTriangle, Edit2, Plus, Star, PlusCircle, Trash2 } from 'lucide-react';
 
 interface BossPanelItem {
   id: number;
@@ -161,18 +161,30 @@ export default function AssetTree() {
     }
   };
 
-  const handleUpdateServiceDate = async (svcId: number) => {
+  const handleUpdateServiceDate = async (serviceId: number) => {
     try {
-      await api.put(`/services/${svcId}/date`, { date: newSvcDate });
-      addToast('Data do serviço atualizada com sucesso!', 'success');
+      await api.put(`/services/${serviceId}/date`, { date: newSvcDate });
       setEditingDateId(null);
-      if (selectedAssetId) {
-        api.get(`/assets/${selectedAssetId}`).then(res => setAssetHistory(res.data)).catch(console.error);
-      }
+      // Reload history
+      if (selectedAssetId) api.get(`/assets/${selectedAssetId}`).then(res => setAssetHistory(res.data));
       fetchTable();
-      fetchTree();
+      addToast('Data atualizada com sucesso', 'success');
     } catch (err) {
-      addToast('Erro ao atualizar a data.', 'error');
+      console.error(err);
+      addToast('Erro ao atualizar data', 'error');
+    }
+  };
+
+  const handleDeleteService = async (serviceId: number) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta vistoria? Esta ação não pode ser desfeita.')) return;
+    try {
+      await api.delete(`/services/${serviceId}`);
+      if (selectedAssetId) api.get(`/assets/${selectedAssetId}`).then(res => setAssetHistory(res.data));
+      fetchTable();
+      addToast('Vistoria excluída com sucesso', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Erro ao excluir vistoria', 'error');
     }
   };
 
@@ -583,41 +595,29 @@ export default function AssetTree() {
                                 {svc.macro_type}
                               </span>
                               <div className="flex items-center gap-2">
-                                {editingDateId === svc.id ? (
-                                  <div className="flex items-center gap-1 z-20">
-                                    <input 
-                                      type="date" 
-                                      value={newSvcDate} 
-                                      onChange={e => setNewSvcDate(e.target.value)}
-                                      className="border border-slate-300 rounded px-2 py-0.5 text-sm"
-                                    />
-                                    <button onClick={() => handleUpdateServiceDate(svc.id)} className="p-1 text-green-600 hover:bg-green-50 rounded shadow-sm bg-white">
-                                      <Check size={16} />
-                                    </button>
-                                    <button onClick={() => setEditingDateId(null)} className="p-1 text-red-500 hover:bg-red-50 rounded shadow-sm bg-white">
-                                      <X size={16} />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <span className="text-sm font-bold text-slate-500">
-                                      {svc.date ? svc.date.split('T')[0].split('-').reverse().join('/') : ''}
-                                    </span>
-                                    <button 
-                                      onClick={() => { setEditingDateId(svc.id); setNewSvcDate(svc.date); }}
-                                      className="p-1 text-slate-400 hover:text-primary-600 hover:bg-slate-50 rounded transition-colors"
-                                      title="Editar Data"
-                                    >
-                                      <Edit2 size={14} />
-                                    </button>
-                                  </>
-                                )}
+                                <span className="text-sm font-bold text-slate-500 mr-2">
+                                  {svc.date ? svc.date.split('T')[0].split('-').reverse().join('/') : ''}
+                                </span>
+                                <button 
+                                  onClick={() => navigate(`/service?edit_id=${svc.id}&asset=${assetHistory.id}`)}
+                                  className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-200"
+                                  title="Editar Vistoria Completa"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteService(svc.id)}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors border border-transparent hover:border-red-200"
+                                  title="Excluir Vistoria"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
                               </div>
                             </div>
                             <div className="space-y-2 mt-3 text-sm text-slate-700">
                                <p><strong className="text-slate-900 font-semibold">Tipo Geral:</strong> {svc.category}</p>
                                
-                               {svc.piping_material && <p><strong className="text-slate-900 font-semibold">Intervenção na Linha:</strong> {svc.piping_material} {svc.diameter_mm && `(${svc.diameter_mm}mm)`}</p>}
+                               {svc.piping_material && <p><strong className="text-slate-900 font-semibold">Intervenção na Linha:</strong> {svc.piping_material} {svc.diameter_mm ? `(${svc.diameter_mm}mm)` : ''}</p>}
                                
                                {svc.natural_influences && <p><strong className="text-slate-900 font-semibold">Causas ou Clima:</strong> {svc.natural_influences}</p>}
                                
