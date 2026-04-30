@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { Settings2, AlertTriangle, Activity, Clock, CheckCircle, FileText, Check, X, Edit2, Star, PlusCircle } from 'lucide-react';
+import { Settings2, AlertTriangle, Activity, Clock, CheckCircle, FileText, Check, X, Edit2, Star, PlusCircle, Trash2 } from 'lucide-react';
 
 interface DashboardSummary {
   green: number;
@@ -456,17 +456,17 @@ export default function Dashboard() {
                                   </span>
                                   <button 
                                     onClick={() => navigate(`/service?edit=${svc.id}&asset=${assetHistory.id}`)}
-                                    className="p-1 text-slate-400 hover:text-primary-600 hover:bg-slate-50 rounded transition-colors"
+                                    className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-200"
                                     title="Editar Vistoria Completa"
                                   >
-                                    <Edit2 size={14} />
+                                    <Edit2 size={16} />
                                   </button>
                                   <button 
                                     onClick={() => handleDeleteService(svc.id)}
-                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-slate-50 rounded transition-colors"
+                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors border border-transparent hover:border-red-200"
                                     title="Excluir Vistoria"
                                   >
-                                    <X size={14} />
+                                    <Trash2 size={16} />
                                   </button>
                                 </>
                               )}
