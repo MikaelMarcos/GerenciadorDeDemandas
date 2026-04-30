@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileDown, Calendar, DownloadCloud, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { FileDown, Calendar, DownloadCloud, AlertCircle, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import api from '../api';

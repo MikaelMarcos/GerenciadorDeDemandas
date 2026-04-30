@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { ChevronRight, ChevronDown, MapPin, Settings2, Hash, X, FileText, Check, AlertTriangle, Edit2, Plus, Star, PlusCircle, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, MapPin, Settings2, Hash, X, FileText, AlertTriangle, Edit2, Plus, Star, PlusCircle, Trash2 } from 'lucide-react';
 
 interface BossPanelItem {
   id: number;
@@ -51,9 +51,7 @@ export default function AssetTree() {
   const [isAnomalyFormOpen, setIsAnomalyFormOpen] = useState(false);
   const [anomalyDesc, setAnomalyDesc] = useState('');
 
-  // Date Editing
-  const [editingDateId, setEditingDateId] = useState<number | null>(null);
-  const [newSvcDate, setNewSvcDate] = useState<string>('');
+
 
   const fetchTree = () => {
     setLoadingTree(true);
@@ -161,19 +159,7 @@ export default function AssetTree() {
     }
   };
 
-  const handleUpdateServiceDate = async (serviceId: number) => {
-    try {
-      await api.put(`/services/${serviceId}/date`, { date: newSvcDate });
-      setEditingDateId(null);
-      // Reload history
-      if (selectedAssetId) api.get(`/assets/${selectedAssetId}`).then(res => setAssetHistory(res.data));
-      fetchTable();
-      addToast('Data atualizada com sucesso', 'success');
-    } catch (err) {
-      console.error(err);
-      addToast('Erro ao atualizar data', 'error');
-    }
-  };
+
 
   const handleDeleteService = async (serviceId: number) => {
     if (!window.confirm('Tem certeza que deseja excluir esta vistoria? Esta ação não pode ser desfeita.')) return;
