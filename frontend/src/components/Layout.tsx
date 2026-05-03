@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, PlusCircle, Network, FileDown, Users as UsersIcon, LogOut, User as UserIcon, BrainCircuit } from 'lucide-react';
+import { Menu, X, LayoutDashboard, PlusCircle, Network, FileDown, Users as UsersIcon, LogOut, User as UserIcon, BrainCircuit, Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getIconComponent } from '../utils/icons';
 
@@ -15,6 +15,7 @@ export default function Layout() {
   const menuItems = [
     { path: '/', name: 'Painel NUIAM', icon: LayoutDashboard },
     { path: '/assets', name: 'Árvore de Ativos', icon: Network },
+    { path: '/inventory', name: 'Estoque', icon: Package },
     { path: '/service', name: 'Registrar Vistoria', icon: PlusCircle },
     { path: '/reports', name: 'Exportar Relatórios', icon: FileDown },
   ];

@@ -502,3 +502,80 @@ def placeholder_ml_prediction():
     # Model placeholder
     # Preparação para receber modelo Scikit-learn/XGBoost para análise de histórico de umidade/interferência
     return {"message": "Modelo de ML será integrado aqui."}
+
+# -- ROTAS DE ESTOQUE E ALMOXARIFADO --
+
+@app.get("/api/inventory", response_model=List[schemas.InventoryItemResponse])
+def get_inventory(db: Session = Depends(database.get_db)):
+    return db.query(models.InventoryItem).all()
+
+@app.post("/api/inventory", response_model=schemas.InventoryItemResponse)
+def create_inventory_item(item: schemas.InventoryItemCreate, db: Session = Depends(database.get_db)):
+    db_item = models.InventoryItem(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.put("/api/inventory/{item_id}", response_model=schemas.InventoryItemResponse)
+def update_inventory_item(item_id: int, item_update: schemas.InventoryItemUpdate, db: Session = Depends(database.get_db)):
+    db_item = db.query(models.InventoryItem).filter(models.InventoryItem.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item não encontrado no estoque.")
+    
+    update_data = item_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_item, key, value)
+    
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/inventory/{item_id}")
+def delete_inventory_item(item_id: int, db: Session = Depends(database.get_db)):
+    db_item = db.query(models.InventoryItem).filter(models.InventoryItem.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item não encontrado no estoque.")
+    
+    # Delete associated movements first
+    db.query(models.InventoryMovement).filter(models.InventoryMovement.item_id == item_id).delete()
+    db.delete(db_item)
+    db.commit()
+    return {"message": "Item removido com sucesso."}
+
+@app.post("/api/inventory/{item_id}/movement", response_model=schemas.InventoryMovementResponse)
+def create_inventory_movement(item_id: int, user_name: str, movement: schemas.InventoryMovementCreate, db: Session = Depends(database.get_db)):
+    db_item = db.query(models.InventoryItem).filter(models.InventoryItem.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item não encontrado no estoque.")
+    
+    if movement.movement_type == "out":
+        if db_item.current_quantity < movement.quantity:
+            raise HTTPException(status_code=400, detail="Quantidade insuficiente em estoque.")
+        db_item.current_quantity -= movement.quantity
+    elif movement.movement_type == "in":
+        db_item.current_quantity += movement.quantity
+    else:
+        raise HTTPException(status_code=400, detail="Tipo de movimentação inválido.")
+        
+    db_movement = models.InventoryMovement(
+        item_id=item_id,
+        movement_type=movement.movement_type,
+        quantity=movement.quantity,
+        responsible_name=user_name,
+        observation=movement.observation
+    )
+    
+    db.add(db_movement)
+    db.commit()
+    db.refresh(db_movement)
+    
+    return db_movement
+
+@app.get("/api/inventory/{item_id}/movements", response_model=List[schemas.InventoryMovementResponse])
+def get_inventory_movements(item_id: int, db: Session = Depends(database.get_db)):
+    return db.query(models.InventoryMovement).filter(models.InventoryMovement.item_id == item_id).order_by(models.InventoryMovement.date.desc()).all()
+
+@app.get("/api/inventory/movements/all", response_model=List[schemas.InventoryMovementResponse])
+def get_all_inventory_movements(db: Session = Depends(database.get_db)):
+    return db.query(models.InventoryMovement).order_by(models.InventoryMovement.date.desc()).all()

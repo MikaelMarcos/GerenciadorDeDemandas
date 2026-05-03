@@ -122,3 +122,43 @@ class DemandCreate(BaseModel):
     asset_id: int
     technician_name: str
     description: str
+
+class InventoryItemBase(BaseModel):
+    name: str
+    unit: Optional[str] = None
+    price: Optional[float] = None
+    serial_number: Optional[str] = None
+    asset_tag: Optional[str] = None
+    model: Optional[str] = None
+    observations: Optional[str] = None
+    min_stock_limit: Optional[float] = 2
+
+class InventoryItemCreate(InventoryItemBase):
+    current_quantity: float
+
+class InventoryItemUpdate(InventoryItemBase):
+    current_quantity: Optional[float] = None
+
+class InventoryItemResponse(InventoryItemBase):
+    id: int
+    current_quantity: float
+    
+    class Config:
+        from_attributes = True
+
+class InventoryMovementBase(BaseModel):
+    movement_type: str
+    quantity: float
+    observation: Optional[str] = None
+
+class InventoryMovementCreate(InventoryMovementBase):
+    pass
+
+class InventoryMovementResponse(InventoryMovementBase):
+    id: int
+    item_id: int
+    responsible_name: str
+    date: dt_date
+
+    class Config:
+        from_attributes = True

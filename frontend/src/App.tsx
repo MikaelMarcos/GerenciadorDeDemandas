@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import Users from './pages/Users';
 import Profile from './pages/Profile';
 import MlDataViewer from './pages/MlDataViewer';
+import Inventory from './pages/Inventory';
 
 const ProtectedRoute = () => {
   const { user } = useAuth();
@@ -32,6 +33,7 @@ function App() {
                 <Route path="reports" element={<Reports />} />
                 <Route path="users" element={<Users />} />
                 <Route path="ml-data" element={<MlDataViewer />} />
+                <Route path="inventory" element={<Inventory />} />
                 <Route path="profile" element={<Profile />} />
               </Route>
             </Route>

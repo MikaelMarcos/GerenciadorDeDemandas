@@ -76,3 +76,30 @@ class Service(Base):
 
     asset = relationship("Asset", back_populates="services")
     users = relationship("User", secondary=service_users, back_populates="services")
+
+class InventoryItem(Base):
+    __tablename__ = "inventory_items"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    current_quantity = Column(Float, default=0)
+    unit = Column(String, nullable=True)
+    price = Column(Float, nullable=True)
+    serial_number = Column(String, nullable=True)
+    asset_tag = Column(String, nullable=True)
+    model = Column(String, nullable=True)
+    observations = Column(Text, nullable=True)
+    min_stock_limit = Column(Float, default=2) # Pode ser quebrado se unidade for metros
+
+    movements = relationship("InventoryMovement", back_populates="item")
+
+class InventoryMovement(Base):
+    __tablename__ = "inventory_movements"
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer, ForeignKey("inventory_items.id"))
+    movement_type = Column(String) # "in" or "out"
+    quantity = Column(Float)
+    responsible_name = Column(String)
+    date = Column(Date, default=datetime.date.today)
+    observation = Column(Text, nullable=True)
+
+    item = relationship("InventoryItem", back_populates="movements")
