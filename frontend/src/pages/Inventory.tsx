@@ -7,7 +7,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 interface InventoryItem {
-  id: int;
+  id: number;
   name: string;
   current_quantity: number;
   unit?: string;
