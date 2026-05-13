@@ -51,15 +51,17 @@ export default function Inventory() {
   // Form states
   const [formData, setFormData] = useState({
     name: '',
-    current_quantity: 0,
+    current_quantity: '0' as string | number,
     unit: '',
-    price: '',
+    price: '' as string | number,
     serial_number: '',
     asset_tag: '',
     model: '',
     observations: '',
-    min_stock_limit: 2
+    min_stock_limit: '2' as string | number
   });
+
+  const [isSaving, setIsSaving] = useState(false);
 
   const [movementData, setMovementData] = useState({
     quantity: 1,
@@ -99,10 +101,13 @@ export default function Inventory() {
 
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       const payload = {
         ...formData,
-        price: formData.price ? parseFloat(formData.price as string) : null,
+        price: formData.price !== '' && formData.price !== null && !isNaN(Number(formData.price)) ? Number(formData.price) : null,
+        current_quantity: formData.current_quantity !== '' && formData.current_quantity !== null && !isNaN(Number(formData.current_quantity)) ? Number(formData.current_quantity) : 0,
+        min_stock_limit: formData.min_stock_limit !== '' && formData.min_stock_limit !== null && !isNaN(Number(formData.min_stock_limit)) ? Number(formData.min_stock_limit) : 0,
       };
 
       if (editingItem) {
@@ -114,8 +119,12 @@ export default function Inventory() {
       }
       setItemModalOpen(false);
       fetchItems();
-    } catch (error) {
-      addToast('Erro ao salvar item.', 'error');
+    } catch (error: any) {
+      const detail = error.response?.data?.detail;
+      const errorMsg = Array.isArray(detail) ? detail[0].msg : (typeof detail === 'string' ? detail : 'Erro ao salvar item.');
+      addToast(errorMsg, 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -303,7 +312,7 @@ export default function Inventory() {
           <button
             onClick={() => {
               setEditingItem(null);
-              setFormData({ name: '', current_quantity: 0, unit: '', price: '', serial_number: '', asset_tag: '', model: '', observations: '', min_stock_limit: 2 });
+              setFormData({ name: '', current_quantity: '0', unit: '', price: '', serial_number: '', asset_tag: '', model: '', observations: '', min_stock_limit: '2' });
               setItemModalOpen(true);
             }}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 font-medium shadow-sm shadow-primary-500/20"
@@ -415,8 +424,8 @@ export default function Inventory() {
                           <button onClick={() => {
                             setEditingItem(item);
                             setFormData({
-                              name: item.name, current_quantity: item.current_quantity, unit: item.unit || '', price: item.price ? String(item.price) : '', 
-                              serial_number: item.serial_number || '', asset_tag: item.asset_tag || '', model: item.model || '', observations: item.observations || '', min_stock_limit: item.min_stock_limit
+                              name: item.name, current_quantity: String(item.current_quantity), unit: item.unit || '', price: item.price ? String(item.price) : '', 
+                              serial_number: item.serial_number || '', asset_tag: item.asset_tag || '', model: item.model || '', observations: item.observations || '', min_stock_limit: String(item.min_stock_limit)
                             });
                             setItemModalOpen(true);
                           }} className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors" title="Editar">
@@ -453,12 +462,12 @@ export default function Inventory() {
                 {!editingItem && (
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade Inicial *</label>
-                    <input required type="number" min="0" step="any" value={formData.current_quantity} onChange={e => setFormData({...formData, current_quantity: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
+                    <input required type="number" min="0" step="any" value={formData.current_quantity} onChange={e => setFormData({...formData, current_quantity: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
                   </div>
                 )}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Limite de Baixo Estoque</label>
-                  <input type="number" min="0" step="any" value={formData.min_stock_limit} onChange={e => setFormData({...formData, min_stock_limit: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
+                  <input type="number" min="0" step="any" value={formData.min_stock_limit} onChange={e => setFormData({...formData, min_stock_limit: e.target.value})} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
                   <p className="text-xs text-slate-400 mt-1">Avisar quando chegar neste valor (Padrão: 2).</p>
                 </div>
                 <div>
@@ -488,7 +497,7 @@ export default function Inventory() {
               </div>
               <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button type="button" onClick={() => setItemModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">Salvar Material</button>
+                <button type="submit" disabled={isSaving} className={`px-4 py-2 text-white rounded-lg transition-colors ${isSaving ? 'bg-green-600 shadow-md scale-105' : 'bg-primary-600 hover:bg-primary-700'}`}>{isSaving ? 'Salvando...' : 'Salvar Material'}</button>
               </div>
             </form>
           </div>
